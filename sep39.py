@@ -173,7 +173,7 @@ if __name__ == "__main__":
     with open(filename, "rb") as f:
         b = f.read()
 
-    media_type = MediaType(f"image/png", n="CLI", c=zlib.crc32(b))
+    media_type = ("image/png", {"n": "CLI", "c": zlib.crc32(b)})
 
     print(f"Encoding file '{filename}' ...")
     start = time.time()
@@ -182,9 +182,9 @@ if __name__ == "__main__":
     print(f"  done (took {delta:.2f}ms)")
 
     total_size = sum(map(lambda r: len(r[0]) + len(r[1]), rows))
+    print("  checksum:", media_type[1]['c'])
     print("  stats:")
     print(f"   - original size:   {len(b)}")
     print(f"   - ManageData rows: {len(rows)}")
     print(f"   - encoded size:    {total_size}")
     print(f"   - ratio:           {total_size/len(b):.2f}x")
-    print(rows[0][0])
