@@ -113,9 +113,9 @@ def decode(rows):
 
     # Finally, let's turn the rest of the buffer (that is, starting past the
     # header + metadata) into a long bytestring.
-    r, c = divmod(len("001") + 6 + len(metadata), 64 + 64)
+    r, c = divmod(len("1") + 6 + metadata_len, 62 + 64)
     key, value = rows[r]
-    binary = base91.decode(key[2+c:]) + value[max(0, c-64):]
+    binary = base91.decode(key[2+c:]) + value[max(0, c-62):]
     for key, value in rows[r+1:]:
         binary += base91.decode(key[2:]) + value
 
