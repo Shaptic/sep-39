@@ -1,4 +1,4 @@
-A reference implementation of the in-draft SEP-39, [here](https://github.com/stellar/stellar-protocol/pull/1090).
+A reference implementation of the in-draft SEP-39, [here](https://github.com/stellar/stellar-protocol/pull/1090). It is accurate up to commit [b274d9c9](https://github.com/stellar/stellar-protocol/pull/1090/commits/b274d9c96036c575815c4e51c1362d253051b45e] on the pull request.
 
 To build and run the code:
 
