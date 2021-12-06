@@ -9,20 +9,12 @@ import base91
 import stellar_sdk
 
 
+__version__ = "1"
+
+
 def render_media_type(media_type, **params):
     return f"{media_type}{';' if params else ''}" + \
         ';'.join(f'{k}={v}' for k, v in params.items())
-
-def build_operations(
-    source: Optional[stellar_sdk.Account],
-    data: bytes,
-    *media_types: List[Tuple[str, Dict[str, str]]]
-) -> List[stellar_sdk.ManageData]:
-    """ Creates a list of ManageData operations that SEP-39-encodes the data.
-    """
-    return map(
-        lambda row: stellar_sdk.ManageData(*row, source_account=source),
-        encode(data))
 
 def encode(data: bytes, *media_types: List[Tuple[str, Dict[str, str]]]) -> List[Tuple[str, bytes]]:
     """ Performs SEP-39 encoding of the given `data` as the given `media_types`.
@@ -54,7 +46,7 @@ def encode(data: bytes, *media_types: List[Tuple[str, Dict[str, str]]]) -> List[
             raise ValueError("expected size parameter s=... not found")
 
     metadata = ','.join(map(lambda mt: render_media_type(mt[0], **mt[1]), media_types))
-    header = f"1{str(len(metadata))}{metadata}"
+    header = f"{__version__}{str(len(metadata))}{metadata}"
     rows = []
 
     # First, insert the header as-is.
@@ -92,16 +84,15 @@ def decode(rows: List[Tuple[str, bytes]]) -> Tuple[
     """ Decodes the SEP-39 formatted `rows` into media types and binaries.
     """
     key1, value1 = rows[0]
-    assert key1.startswith("001"), "invalid SEP-39 row"
-    i = len("001")  # index + version
+    assert key1.startswith(f"00{__version__}"), "invalid SEP-39 row"
 
     metadata_len = ""
-    for j in range(i, i+7):
+    for j in range(3, 3+7):
         if not key1[j].isdigit(): break
         metadata_len += key1[j]
         # Edge case: if there's no metadata, we'd otherwise consume binary bytes
         # as the length if it started with digits.
-        if j == i and key1[j] == '0': break
+        if j == 3 and key1[j] == '0': break
 
     try:
         metadata_len = int(metadata_len, 10)
