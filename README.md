@@ -1,4 +1,4 @@
-A reference implementation of the in-draft SEP-39, [here](https://github.com/stellar/stellar-protocol/pull/1090). It is accurate up to commit [b274d9c9](https://github.com/stellar/stellar-protocol/pull/1090/commits/b274d9c96036c575815c4e51c1362d253051b45e] on the pull request.
+A reference implementation of the in-draft SEP-39, [here](https://github.com/stellar/stellar-protocol/pull/1090). It is accurate up to commit [0ad251d](https://github.com/stellar/stellar-protocol/pull/1090/commits/0ad251d19330f8b035f9da232fb20e444f2e2209] on the pull request.
 
 To build and run the code:
 
@@ -11,11 +11,10 @@ You can also run it on a specific file to see how it encodes:
 
     $ python sep39.py sep39.py
     Encoding file 'sep39.py' ...
-      done (took 31.89ms)
-      checksum: 2296490166
+      done (took 11.42ms)
+      checksum: 333028532
       stats:
-       - original size:   6799
-       - ManageData rows: 60
-       - encoded size:    7659
+       - original size:   7529
+       - ManageData rows: 67
+       - encoded size:    8482
        - ratio:           1.13x
-
