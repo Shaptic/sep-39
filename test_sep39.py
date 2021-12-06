@@ -12,7 +12,7 @@ import sep39
 class SanityTest(unittest.TestCase):
 
     def test_sanity_check(self):
-        """ Tests that a random set of bytes encode-decodes correctly.
+        """ Tests that a random set of bytes encode-decodes correctly
         """
         media_type = ("application/octet-stream", {"n": "random"})
         asset = random.randbytes(int(10e3))
@@ -28,7 +28,7 @@ class SanityTest(unittest.TestCase):
         self.assertEqual(params, media_type[1])
 
     def test_manage_data(self):
-        """ Ensures that the format is compatible with ManageData operations.
+        """ Ensures that the format is compatible with ManageData operations
         """
         data = random.randbytes(random.randint(10e3, 100e3))
         for key, value in sep39.encode(data):
@@ -38,7 +38,7 @@ class SanityTest(unittest.TestCase):
 class MultipleBuffersTest(unittest.TestCase):
 
     def test_two_buffers(self):
-        """ Tests that two random sets of bytes encode-decode correctly.
+        """ Tests that two random sets of bytes encode-decode correctly
         """
         first_bin = b"This is a string of bytes that should span over more " + \
             b"than a single row entry, thus checking that these edge cases " + \
@@ -65,7 +65,7 @@ class MultipleBuffersTest(unittest.TestCase):
 class BenchmarkTestCase(unittest.TestCase):
 
     def test_encoding_ratio(self):
-        """ Benchmarks the encoding ratio at various binary sizes.
+        """ Benchmarks the encoding ratio at various binary sizes
         """
 
         # pick random sizes of a particular magnitude within a small margin
@@ -102,15 +102,15 @@ class BenchmarkTestCase(unittest.TestCase):
                 self.assertEqual(media_type, "")
                 self.assertEqual(params, {})
 
-                encoded_size = sum((len(k) + len(v) for k, v in encoded))
-                growth = 100 * ((encoded_size / float(size)) - 1)
-                print("Original size:", to_human_readable(size))
-                print("Encoded size: ", to_human_readable(encoded_size))
-                print(f"  {growth:.2f}% growth")
-                print(f"  {len(encoded)} entries")
-                print("  %d imperfect row(s)" % (len(list(filter(
-                    lambda r: len(r[0]) != 64 or len(r[1]) != 64,
-                    encoded)))))
+                # encoded_size = sum((len(k) + len(v) for k, v in encoded))
+                # growth = 100 * ((encoded_size / float(size)) - 1)
+                # print("Original size:", to_human_readable(size))
+                # print("Encoded size: ", to_human_readable(encoded_size))
+                # print(f"  {growth:.2f}% growth")
+                # print(f"  {len(encoded)} entries")
+                # print("  %d imperfect row(s)" % (len(list(filter(
+                #     lambda r: len(r[0]) != 64 or len(r[1]) != 64,
+                #     encoded)))))
 
 
 def read_image(filename):

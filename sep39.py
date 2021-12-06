@@ -1,15 +1,28 @@
 #! /usr/bin/env python3
 import math
 import string
-import base91
 import zlib
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
+
+import base91
+import stellar_sdk
 
 
 def render_media_type(media_type, **params):
     return f"{media_type}{';' if params else ''}" + \
         ';'.join(f'{k}={v}' for k, v in params.items())
+
+def build_operations(
+    source: Optional[stellar_sdk.Account],
+    data: bytes,
+    *media_types: List[Tuple[str, Dict[str, str]]]
+) -> List[stellar_sdk.ManageData]:
+    """ Creates a list of ManageData operations that SEP-39-encodes the data.
+    """
+    return map(
+        lambda row: stellar_sdk.ManageData(*row, source_account=source),
+        encode(data))
 
 def encode(data: bytes, *media_types: List[Tuple[str, Dict[str, str]]]) -> List[Tuple[str, bytes]]:
     """ Performs SEP-39 encoding of the given `data` as the given `media_types`.
@@ -41,10 +54,10 @@ def encode(data: bytes, *media_types: List[Tuple[str, Dict[str, str]]]) -> List[
             raise ValueError("expected size parameter s=... not found")
 
     metadata = ','.join(map(lambda mt: render_media_type(mt[0], **mt[1]), media_types))
-    header = f"1{str(len(metadata)).zfill(6)}{metadata}"
+    header = f"1{str(len(metadata))}{metadata}"
+    rows = []
 
     # First, insert the header as-is.
-    rows = []
     for i in range(0, len(header), 62+64):
         idx = _encode_index(i)
         key, value = f"{idx}{header[i:i+62]}", header[i+62:i+62+64]
@@ -70,21 +83,37 @@ def encode(data: bytes, *media_types: List[Tuple[str, Dict[str, str]]]) -> List[
 
     return rows
 
-def decode(rows):
+def decode(rows: List[Tuple[str, bytes]]) -> Tuple[
+    List[
+        Tuple[str, Dict[str, str]]
+    ],
+    List[bytes]
+]:
+    """ Decodes the SEP-39 formatted `rows` into media types and binaries.
+    """
     key1, value1 = rows[0]
     assert key1.startswith("001"), "invalid SEP-39 row"
     i = len("001")  # index + version
 
+    metadata_len = ""
+    for j in range(i, i+7):
+        if not key1[j].isdigit(): break
+        metadata_len += key1[j]
+        # Edge case: if there's no metadata, we'd otherwise consume binary bytes
+        # as the length if it started with digits.
+        if j == i and key1[j] == '0': break
+
     try:
-        metadata_len = int(key1[i:i+6], 10)
+        metadata_len = int(metadata_len, 10)
         assert metadata_len < 126000, "length exceeds maximum"
+
     except (AssertionError, ValueError) as e:
         raise ValueError("invalid metadata length: " + str(e))
 
     # Consume exactly enough metadata bytes:
 
     # First, gobble up as much of the first row as necessary.
-    metadata = key1[i+6:][:metadata_len]
+    metadata = key1[j:][:metadata_len]
     metadata += value1[:metadata_len - len(metadata)].decode("ascii")
 
     # Then, we know each row gives us exactly 62+64 characters of data. So we
@@ -104,6 +133,14 @@ def decode(rows):
 
     assert len(metadata) == metadata_len, "parsing metadata failed"
 
+    # Finally, let's turn the rest of the buffer (that is, starting past the
+    # header + metadata) into a long bytestring.
+    r, c = divmod(len("1") + len(str(metadata_len)) + metadata_len, 62 + 64)
+    key, value = rows[r]
+    binary = base91.decode(key[2+c:]) + value[max(0, c-62):]
+    for key, value in rows[r+1:]:
+        binary += base91.decode(key[2:]) + value
+
     # Turn the metadata string into something palpable:
     #   a list of ("type/subtype", {k1: v1, k2: v2}) tuples.
     media_types = tuple(
@@ -111,17 +148,9 @@ def decode(rows):
         for media in (media.split(';') for media in metadata.split(','))
     )
 
-    # Finally, let's turn the rest of the buffer (that is, starting past the
-    # header + metadata) into a long bytestring.
-    r, c = divmod(len("1") + 6 + metadata_len, 62 + 64)
-    key, value = rows[r]
-    binary = base91.decode(key[2+c:]) + value[max(0, c-62):]
-    for key, value in rows[r+1:]:
-        binary += base91.decode(key[2:]) + value
-
     # Split the binary based on sizes and optionally perform checksum
-    # verifications. Note that if there's more than one media type, they *must*
-    # have size parameters.
+    # verifications. Note that if there's more than one media type,
+    # all-but-the-last *must* have size parameters.
     binaries = []
     for i, (media_type, params) in enumerate(media_types):
         s = int(params.get('s', len(binary)))
@@ -132,10 +161,6 @@ def decode(rows):
         actual = zlib.crc32(binaries[-1])
         if chk is not None and chk != actual:
             raise ValueError(f"Invalid checksum: expected {chk} got {actual}")
-
-    if len(binaries) != len(media_types):
-        raise ValueError("Media type count does not match buffer count " +
-            "(did you include sizes in the metadata?)")
 
     return media_types, binaries
 
